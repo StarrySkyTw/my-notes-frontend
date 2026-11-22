@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, nextTick } from 'vue';
 import axios from 'axios';
-import { marked } from 'marked'; // 匯入 marked 套件
+import { renderMarkdown } from './utils/markdown.js';
 
 // --- 常數與響應式狀態定義 ---
 const API_URL = 'http://127.0.0.1:8080/api';
@@ -17,13 +17,6 @@ const isLoading = ref(true); // 新增讀取狀態
 const editingNoteId = ref(null); // 正在編輯的筆記 ID
 const editingSubject = ref(''); // 正在編輯的筆記標題
 const editingContent = ref(''); // 正在編輯的筆記內容
-
-// --- Markdown 渲染 ---
-const renderMarkdown = (markdownText) => {
-  if (!markdownText) return '';
-  // 設定 marked，讓它能處理換行等
-  return marked.parse(markdownText, { breaks: true, gfm: true });
-};
 
 // --- 邏輯函式 (CRUD) ---
 
