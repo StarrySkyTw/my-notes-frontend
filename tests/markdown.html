@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Markdown 安全測試</title>
+  </head>
+  <body>
+    <main id="results" data-test-status="running">執行 Markdown 測試中…</main>
+    <script type="module">
+      import { renderMarkdown } from '../src/utils/markdown.js';
+
+      const cases = [
+        {
+          name: '正常的 Markdown 標題、粗體與換行',
+          input: '# Title\n\n**bold**\nnext line',
+          check: doc => !!doc.querySelector('h1') &&
+            doc.querySelector('strong')?.textContent === 'bold' &&
+            !!doc.querySelector('br'),
+        },
+        {
+          name: '程式碼區塊與安全連結',
+          input: '```js\nconst a = 1;\n```\n\n[site](https://example.com)',
+          check: doc => doc.querySelector('code')?.textContent.includes('const a = 1') &&
+            doc.querySelector('a')?.getAttribute('href') === 'https://example.com',
+        },
+        {
+          name: '移除圖片的事件處理屬性',
+          input: '<img src="x" onerror="alert(1)">',
+          check: doc => !!doc.querySelector('img') &&
+            !doc.querySelector('img').hasAttribute('onerror'),
+        },
+        {
+          name: '移除危險的 javascript: 連結',
+          input: '[click](javascript:alert(1))',
+          check: doc => !!doc.querySelector('a') &&
+            !doc.querySelector('a').hasAttribute('href'),
+        },
+        {
+          name: '移除 script 元素',
+          input: '<script>alert(1)<\/script>',
+          check: doc => !doc.querySelector('script'),
+        },
+        {
+          name: '移除 HTML 事件處理屬性',
+          input: '<p onclick="alert(1)">safe text</p>',
+          check: doc => doc.querySelector('p')?.textContent.includes('safe text') &&
+            !doc.querySelector('p').hasAttribute('onclick'),
+        },
+        {
+          name: '移除 iframe 元素',
+          input: '<iframe src="https://example.com"></iframe>',
+          check: doc => !doc.querySelector('iframe'),
+        },
+        {
+          name: '空字串與非字串輸入安全處理',
+          input: null,
+          check: (_, result) => result === '',
+        },
+      ];
+
+      const failures = [];
+      for (const test of cases) {
+        try {
+          const output = renderMarkdown(test.input);
+          const doc = new DOMParser().parseFromString(output, 'text/html');
+          if (!test.check(doc, output)) failures.push(test.name + ': assertion failed');
+        } catch (error) {
+          failures.push(test.name + ': ' + String(error));
+        }
+      }
+
+      const results = document.getElementById('results');
+      results.dataset.testStatus = failures.length ? 'fail' : 'pass';
+      results.textContent = failures.length
+        ? 'Markdown tests failed: ' + failures.join(' | ')
+        : 'Markdown tests passed: ' + cases.length + ' cases';
+    </script>
+  </body>
+</html>
